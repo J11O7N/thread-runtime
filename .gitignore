@@ -1,0 +1,31 @@
+# macOS
+.DS_Store
+
+# Build outputs
+*.onnx
+*.o
+*.out
+build/
+onnxruntime/
+bin/
+*.mp4
+*.DS_Store
+
+# Executables
+test_pool
+bench_pool
+mnist_demo
+a.out
+
+# CMake (혹시 나중에 쓸 수도 있음)
+build/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# VSCode
+.vscode/
+
+# Logs
+*.log
