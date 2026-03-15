@@ -25,12 +25,10 @@ AI inference 실행 성능을 개선하기 위해
 고성능 ThreadPool 기반 runtime 구조를 직접 설계하고 구현했습니다.
 
 * Fixed worker thread 기반 실행 구조 설계
-* Shared task queue를 통한 작업 분배 구조 구현
-* Condition variable 기반 효율적인 스케줄링
-* Lock contention을 최소화한 동기화 설계
-* Graceful shutdown 처리 로직 구현
-* Exception propagation 구조 설계
-* Future 기반 비동기 결과 처리 지원
+* Shared task queue 기반 task scheduling 구현
+* Condition variable 기반 대기/깨움 구조 설계
+* Thread lifecycle 관리 및 graceful shutdown 구현
+* Future 기반 비동기 결과 처리 구조 설계
 
 이를 통해 단순한 ThreadPool 구현이 아닌,
 AI inference 실행 환경을 고려한 runtime 수준의 병렬 처리 구조를 구축했습니다.
@@ -69,8 +67,6 @@ ThreadPool runtime을
 
 ---
 
-# Key Result
-
 ### Runtime Benchmark Insight
 
 * tiny task에서는 thread creation cost가 bottleneck
@@ -88,7 +84,7 @@ Batch 1000 기준:
 
 ---
 
-# 🧩 Key Insight
+# Key Insight
 
 이 프로젝트의 핵심은 다음입니다.
 
@@ -98,7 +94,7 @@ Batch 1000 기준:
 
 ---
 
-# 🏗️ Project Structure
+# Project Structure
 
 ```text
 .
