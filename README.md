@@ -1,112 +1,134 @@
-# High Performance ThreadPool Runtime for AI Inference
 
-C++로 고정 worker 기반 ThreadPool Runtime을 직접 설계하고 구현한 프로젝트입니다.
-단순 병렬 처리 구현을 넘어, 실제 AI inference workload에 적용하여 CPU 환경에서의 처리 효율 개선 가능성을 실험적으로 검증했습니다.
+# ThreadPool 기반 AI 추론 서버
 
-본 프로젝트는 AI 모델을 만드는 것이 아니라, AI 모델을 더 효율적으로 실행하기 위한 runtime 설계에 초점을 둡니다.
+## 프로젝트 개요
 
----
+병렬 처리 구조를 단순히 구현하는 데서 끝나지 않고, 실제 의미 있는 작업에 적용하여 그 효과를 검증하고자 프로젝트를 진행했습니다.
 
-# Project Goal
+특히 인공지능 모델 추론은 동일한 연산이 반복되는 구조이기 때문에, 작업 단위 병렬 실행 구조를 적용하기에 적합하다고 판단했습니다. 이에 따라 ThreadPool 기반 병렬 처리 구조를 직접 구현하고, 이를 ONNX 기반 AI 모델 추론 과정에 적용하여 성능 차이를 확인했습니다.
 
-AI inference를 CPU 환경에서 실행할 때 발생하는
-
-낮은 코어 활용률, 스레드 생성 비용, 순차 실행으로 인한 성능 저하 문제를 해결하기 위해
-
-Task 단위 병렬 실행 구조를 설계하는 것을 목표로 했습니다.
+또한 내부 실행 코드 수준을 넘어, 외부 요청을 받아 처리하는 서버 형태로 확장하여 실제 서비스 환경과 유사한 구조를 구성했습니다.
 
 ---
 
-## 1️⃣ High Performance ThreadPool Runtime
+## 프로젝트 목표
 
-설계 및 구현
-
-AI inference 실행 성능을 개선하기 위해
-고성능 ThreadPool 기반 runtime 구조를 직접 설계하고 구현했습니다.
-
-* Fixed worker thread 기반 실행 구조 설계
-* Shared task queue 기반 task scheduling 구현
-* Condition variable 기반 대기/깨움 구조 설계
-* Thread lifecycle 관리 및 graceful shutdown 구현
-* Future 기반 비동기 결과 처리 구조 설계
-
-이를 통해 단순한 ThreadPool 구현이 아닌,
-AI inference 실행 환경을 고려한 runtime 수준의 병렬 처리 구조를 구축했습니다.
+- ThreadPool 기반 병렬 실행 구조 설계 및 구현
+- AI 모델 추론 과정에 병렬 처리 적용
+- 실행 구조에 따른 성능 차이 검증
+- 서버 형태로 확장하여 실제 사용 환경 구현
 
 ---
 
-## 2️⃣ Execution Model Benchmark
+## 시스템 구조
 
-3가지 execution model 비교 실험
-
-* Single Thread
-* Thread per Task
-* ThreadPool
-
-이를 통해
-
-* task granularity 영향
-* scheduling overhead 영향
-* worker scaling 특성
-
-을 분석했습니다.
-
----
-
-## 3️⃣ AI Inference Runtime Extension
-
-ThreadPool runtime을
-
-실제 AI inference workload에 적용
-
-* ONNX Runtime 기반 inference 실행
-* batch inference 병렬 처리
-* single vs parallel inference 비교
-
-👉 AI runtime 관점 실험
-
----
-
-### Runtime Benchmark Insight
-
-* tiny task에서는 thread creation cost가 bottleneck
-* threadpool은 scheduling overhead를 줄임
-* worker scaling은 거의 linear하게 성능 향상
-
-### AI Inference Result Example
-
-Batch 1000 기준:
-
-* Single-thread inference → 46 ms
-* ThreadPool inference → 14 ms
-
-👉 CPU batch inference throughput 개선 확인
-
----
-
-# Key Insight
-
-이 프로젝트의 핵심은 다음입니다.
-
-* ThreadPool은 latency 개선보다 throughput 개선에 효과적
-* runtime 설계는 task granularity를 반드시 고려해야 함
-* AI inference도 runtime 구조에 따라 성능이 크게 달라짐
-
----
-
-# Project Structure
-
-```text
-.
-├── include/
-│   └── thread_pool.hpp
-├── src/
-│   ├── main.cpp
-│   ├── bench.cpp
-│   └── onnx_mnist_demo.cpp
-├── assets/
-│   └── mnist.onnx
-└── README.md
+```
+Client Request (curl)
+        ↓
+HTTP Server (httplib)
+        ↓
+ThreadPool (작업 분배)
+        ↓
+ONNX Runtime (모델 추론)
+        ↓
+Response 반환 (JSON)
 ```
 
 ---
+
+## 주요 기능
+
+### 1. ThreadPool 구현
+
+- 작업 큐 기반 병렬 실행 구조
+- Worker Thread 재사용
+- 조건 변수를 활용한 효율적인 동기화
+- future를 통한 비동기 결과 처리
+
+---
+
+### 2. AI 모델 추론
+
+- ONNX Runtime을 활용한 MNIST 모델 실행
+- 입력 데이터 → 텐서 변환 → 모델 추론 → 결과 반환
+- 가장 높은 값을 가지는 클래스 선택
+
+---
+
+### 3. HTTP 서버
+
+- `/health` : 서버 상태 확인
+- `/metrics` : 처리 요청 수 및 평균 실행 시간 확인
+- `/predict` : 입력 데이터를 받아 AI 추론 수행
+
+---
+
+### 4. 성능 비교 실험
+
+세 가지 실행 구조를 비교했습니다.
+
+- 단일 실행 방식 (Single Thread)
+- 작업마다 스레드 생성 방식 (Thread per Task)
+- ThreadPool 기반 병렬 처리 방식
+
+### 실험 결과
+
+| Task | NumTasks | Single(ms) | Thread-per-task(ms) | ThreadPool(ms) |
+| --- | --- | --- | --- | --- |
+| Tiny | 1000 | 10 | 32 | 2 |
+| Medium | 300 | 215 | 28 | 54 |
+| Heavy | 50 | 358 | 54 | 93 |
+
+### 분석
+
+- 작은 작업이 많은 경우 → ThreadPool이 가장 효율적
+- 작업이 무거운 경우 → 스레드 생성 비용 영향 감소
+- 작업 크기에 따라 최적 실행 구조가 달라짐
+
+---
+
+## ⚙️ 실행 방법
+
+### 1. 컴파일
+
+```
+g++ -std=c++17 -O2 -pthread src/inference_server.cpp \
+-Iinclude \
+-Ionnxruntime/include \
+-Lonnxruntime/lib -lonnxruntime \
+-o inference_server
+```
+
+---
+
+### 2. 실행 (Mac)
+
+```
+export DYLD_LIBRARY_PATH=$(pwd)/onnxruntime/lib:$DYLD_LIBRARY_PATH
+./inference_server
+```
+
+---
+
+## 발생 문제 및 해결
+
+- ONNX Runtime 연동 과정에서 라이브러리 경로 설정 문제 발생
+    
+    → 환경 변수 설정으로 해결
+    
+- 서버 실행 시 포트 충돌 문제 발생
+    
+    → 포트 변경으로 해결
+    
+- 병렬 구조를 실제 작업에 적용하는 과정에서 실행 흐름 이해 필요
+    
+    → 작업 단위 구조로 재설계
+    
+
+---
+
+## 배운 점
+
+- 병렬 처리는 단순히 스레드를 늘리는 것이 아니라, 작업 구조에 따라 효율이 달라짐
+- 실행 구조와 실제 작업 특성 간의 관계를 고려해야 함
+- 인공지능 모델은 단순 사용보다 실행 환경 설계가 중요함
